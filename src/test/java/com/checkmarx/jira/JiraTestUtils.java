@@ -142,6 +142,24 @@ public class JiraTestUtils implements IJiraTestUtils {
         tryCreateResource(config);
     }
 
+    @Override
+    public String getIssuePriority(String projectKey) {
+        Issue issue = getFirstIssue(projectKey);
+        return issue.getPriority().getName();
+    }
+
+    @Override
+    public Long getIssueUpdatedTime(String projectKey) {
+        Issue issue = getFirstIssue(projectKey);
+        return issue.getUpdateDate().getMillis();
+    }
+
+    @Override
+    public String getIssueStatus(String projectKey) {
+        Issue issue = getFirstIssue(projectKey);
+        return issue.getStatus().getName();
+    }
+
     private ResourceCreationConfig getIssueCreationConfig(String issueType) {
         ResourceCreationConfig config = new ResourceCreationConfig();
         config.body = getIssueTypeRequestBody(issueType);
@@ -264,5 +282,14 @@ public class JiraTestUtils implements IJiraTestUtils {
         public String errorFieldName;
         public String errorFieldValue;
         public HttpStatus expectedErrorStatus;
+    }
+
+    private Issue getFirstIssue(String projectKey) {
+        SearchResult result = search(String.format("project = \"%s\"", projectKey));
+        if (result.getTotal() == 0) {
+            // TODO throw some exception that nakes sense
+            return null;
+        }
+        return result.getIssues().iterator().next();
     }
 }

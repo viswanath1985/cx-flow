@@ -20,4 +20,10 @@ public interface IJiraTestUtils {
     void ensureProjectExists(String project) throws IOException;
 
     void ensureIssueTypeExists(String issueType) throws IOException;
+
+    String getIssuePriority(String projectKey);
+
+    Long getIssueUpdatedTime(String projectKey);
+
+    String getIssueStatus(String projectKey);
 }

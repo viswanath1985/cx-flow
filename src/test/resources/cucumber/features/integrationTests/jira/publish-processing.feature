@@ -2,7 +2,7 @@
 Feature: parse, and then publish processing
   given SAST XML results, calling flowService, to parse and publish results. findings should open an issue in Jira.
 
-  @Cucu
+  #@Cucu
   Scenario Outline: publish new issues to JIRA, one new issue is getting created per scan vulnerability type
     Given target is JIRA
     And   results contain <Number_Of> findings each having a different vulnerability type in one source file
@@ -15,7 +15,7 @@ Feature: parse, and then publish processing
       | 1         |
       | 3         |
 
-  @Cucu
+  #@Cucu
   @Create_issue
   Scenario Outline: publish new issue to JIRA which contains only one vulnerability type
     Given target is JIRA
@@ -30,7 +30,7 @@ Feature: parse, and then publish processing
       | 1         | 1        |
       | 2         | 1        |
 
-  @Cucu
+  #@Cucu
   @Create_issue
   Scenario Outline: publish new issues to JIRA and filtered by a single severity
     Given target is JIRA
@@ -46,7 +46,7 @@ Feature: parse, and then publish processing
       | 10              | 5         |
       | 10              | 10        |
 
-  @Cucu
+  #@Cucu
   @Create_issue
   Scenario Outline: sanity of publishing new issues to JIRA
     Given target is JIRA
@@ -75,7 +75,7 @@ Feature: parse, and then publish processing
       | vuln type                 | filename       |
       | Reflected_XSS_All_Clients | DOS_Login.java |
 
-  @Skip
+  #@Cucu
   @Update_issue @Negative_test
   Scenario: publish updated issue to JIRA with missing parameters
     # Note - to update an issue, the vulnerability & filename fields must match
@@ -84,7 +84,7 @@ Feature: parse, and then publish processing
     When  publishing same issue with missing parameters
     Then  original issues is updated both with 'last updated' value and with new body content
 
-    @Skip
+    #@Cucu
     @Close_issue
     Scenario: publish closed issue to JIRA
       Given target is JIRA
