@@ -1,0 +1,32 @@
+sourceSets {
+    integrationTest {
+        compileClasspath += sourceSets.main.output
+        runtimeClasspath += sourceSets.main.output
+        resources.srcDir file('C:\\dev\\cx-flow\\src\\test\\resources\\cucumber\\features\\integrationTests/resources')
+    }
+}
+
+configurations {
+    integrationTestImplementation.extendsFrom testImplementation
+    integrationTestRuntimeOnly.extendsFrom testRuntimeOnly
+    integrationTestAnnotationProcessor.extendsFrom testAnnotationProcessor
+}
+
+idea {
+    module {
+        testSourceDirs += sourceSets.integrationTest.java.srcDirs
+        testResourceDirs += sourceSets.integrationTest.resources.srcDirs
+        scopes.TEST.plus += [configurations.integrationTestCompile]
+    }
+}
+
+task integrationTest(type: Test) {
+    description = 'Runs the integration tests.'
+    group = 'verification'
+    testClassesDirs = sourceSets.integrationTest.output.classesDirs
+    classpath = sourceSets.integrationTest.runtimeClasspath
+    outputs.upToDateWhen { false }
+    shouldRunAfter test
+}
+
+check.dependsOn -= integrationTest

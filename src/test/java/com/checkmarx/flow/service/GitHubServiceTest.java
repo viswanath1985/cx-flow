@@ -4,6 +4,7 @@ import com.checkmarx.flow.config.GitHubProperties;
 import com.checkmarx.flow.dto.ScanRequest;
 import com.checkmarx.flow.dto.Sources;
 import com.checkmarx.sdk.dto.CxConfig;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;

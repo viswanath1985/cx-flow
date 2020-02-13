@@ -114,11 +114,14 @@ test {
 }
 
 task integrationTest(type: Test) {
-    useJUnit {
+    useJUnitPlatform() {
         systemProperty "testprofile", "integration"
-        
+
     }
 }
+
+
+
 
 task getVersion {
     doLast {
