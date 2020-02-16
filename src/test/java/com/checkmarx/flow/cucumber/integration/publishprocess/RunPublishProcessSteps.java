@@ -66,15 +66,25 @@ public class RunPublishProcessSteps {
 
     private boolean useSanityFindingsFile = false;
 
+    private boolean useOneFindingForUpdateClose = false;
+
     private long updateTime;
 
     private String issueUpdateVulnerabilityType;
+    private String issueUpdateFilename;
+    private Long issueId;
+
+    private boolean updating;
 
 
     @Before("@PublishProcessing")
     public void setDefaults() {
         needFilter = false;
         useSanityFindingsFile = false;
+        updating = false;
+        issueUpdateVulnerabilityType = "";
+        issueUpdateFilename = "";
+        useOneFindingForUpdateClose = false;
     }
 
     @Before("@PublishProcessing")
@@ -116,13 +126,21 @@ public class RunPublishProcessSteps {
     }
 
     @Given("there is an existing issue")
-    public void createExistingIssueForUpdate() throws IOException, ExitThrowable {
+    public void createExistingIssueForUpdate() throws IOException, ExitThrowable, InterruptedException {
         ScanRequest request = getScanRequestWithDefaults();
         File file = getFileFromResourcePath("cucumber/data/sample-sast-results/1-finding-create-for-update.xml");
         innerPublishRequest(request, file);
         updateTime = jiraUtils.getIssueUpdatedTime(jiraProperties.getProject());
+        issueId = jiraUtils.getFirstIssueId(jiraProperties.getProject());
+        issueUpdateVulnerabilityType = jiraUtils.getIssueVulnerability(jiraProperties.getProject());
+        issueUpdateFilename = jiraUtils.getIssueFilename(jiraProperties.getProject());
         Assert.assertTrue("Issue priority before update is incorrect",assertIssuePriority(ISSUE_PRIORITY_BEFORE_UPDATE));
+        TimeUnit.SECONDS.sleep(2);
+    }
 
+    @Given("SAST results contain 1 finding")
+    public void setFilenameForUpdate() {
+        updating = true;
     }
 
     @When("publishing same issue with missing parameters")
@@ -150,11 +168,11 @@ public class RunPublishProcessSteps {
         if (needFilter) {
             request.setFilters(filters);
         }
-        File file = getFileForFindingsNum();
+        File file = getFileForPublish();
         innerPublishRequest(request, file);
     }
 
-    private void innerPublishRequest(ScanRequest request, File file) throws ExitThrowable, IOException {
+    private void innerPublishRequest(ScanRequest request, File file) throws ExitThrowable {
         request.setBugTracker(createJiraBugTracker());
         flowProperties.setBugTracker(bugTracker.name());
         flowService.cxParseResults(request, file);
@@ -177,6 +195,50 @@ public class RunPublishProcessSteps {
         ScanRequest request = getScanRequestWithDefaults();
         File file = getFileFromResourcePath("cucumber/data/sample-sast-results/1-finding-closed.xml");
         innerPublishRequest(request,file);
+    }
+
+    @When("there are two existing issues")
+    public void publishTwoIssues() throws IOException, ExitThrowable {
+        ScanRequest request = getScanRequestWithDefaults();
+        File findingsFile = getFileFromResourcePath("cucumber/data/sample-sast-results/2-findings-different-vuln-type-different-files.xml");
+        innerPublishRequest(request, findingsFile);
+    }
+
+    @When("SAST result contains only one of the findings")
+    public void setFileToOneFindingForClose() {
+        useOneFindingForUpdateClose= true;
+    }
+
+    @Then("issue has the same vulnerability type and filename")
+    public void assertVulnerabilityAndFilename() {
+        assertSameFilename();
+        assertSameVulnerability();
+    }
+
+    private void assertSameVulnerability() {
+        String newVulnerability = jiraUtils.getIssueVulnerability(jiraProperties.getProject());
+        Assert.assertEquals("Filename has changed during update", issueUpdateVulnerabilityType, newVulnerability);
+    }
+
+    private void assertSameFilename() {
+        String newFilename = jiraUtils.getIssueFilename(jiraProperties.getProject());
+        Assert.assertEquals("Filename has changed during update", issueUpdateFilename, newFilename);
+    }
+
+    @Then("JIRA still contains 1 issue")
+    public void validateJirahasOneIssue() {
+        Assert.assertEquals("JIRA contains more than one issue", 1, jiraUtils.getNumberOfIssuesInProject(jiraProperties.getProject()));
+    }
+
+    @Then("issue ID hasn't changed")
+    public void assertIssueIdIsTheSame() {
+        Long newIssueId = jiraUtils.getFirstIssueId(jiraProperties.getProject());
+        Assert.assertEquals("Issue ID is different", issueId, newIssueId);
+    }
+
+    @Then("issue's updated field is set to a more recent timestamp")
+    public void assertUpateIsLater() {
+        assertUpdateTime();
     }
 
     @Then("the issue should be closed")
@@ -213,6 +275,19 @@ public class RunPublishProcessSteps {
         }
     }
 
+
+    @Then("there should be one closed and one open issue")
+    public void assertOneClosedAndOneOpenIssue() {
+        Map<String, Integer> issuesPerStatus = jiraUtils.getIssuesByStatus(jiraProperties.getProject());
+        Integer closed = issuesPerStatus.get(jiraProperties.getCloseTransition());
+        Integer open  = issuesPerStatus.get(jiraProperties.getOpenTransition());
+        Assert.assertNotNull(closed);
+        Assert.assertNotNull(open);
+        Assert.assertEquals("Closed issues number is incorrect", Integer.valueOf(1), closed);
+        Assert.assertEquals("Open issues number is incorrect", Integer.valueOf(1), open);
+
+    }
+
     @Then("verify {int} new issues got created")
     public void verifyNumberOfIssues(int wantedNumOfIssues) {
         int actualNumOfIssues = jiraUtils.getNumberOfIssuesInProject(jiraProperties.getProject());
@@ -222,12 +297,12 @@ public class RunPublishProcessSteps {
 
     @Then("verify {int} findings in body")
     public void verifyNumOfFindingsInBodyForOneIssue(int findings) {
-        int actualFindings = jiraUtils.getFirstIssueNוumOfFindings(jiraProperties.getProject());
+        int actualFindings = jiraUtils.getFirstIssueNumOfFindings(jiraProperties.getProject());
         Assert.assertEquals("Wrong number of findigs", findings, actualFindings);
     }
 
     private ScanRequest getScanRequestWithDefaults() {
-        ScanRequest request = ScanRequest.builder()
+        return ScanRequest.builder()
                 .application("App1")
                 .product(ScanRequest.Product.CX)
                 .project("CodeInjection1")
@@ -243,7 +318,6 @@ public class RunPublishProcessSteps {
                 .incremental(false)
                 .scanPreset("Checkmarx Default")
                 .build();
-        return request;
     }
 
     private File getDifferentVulnerabilityTypeFindings() throws IOException {
@@ -276,7 +350,14 @@ public class RunPublishProcessSteps {
     }
 
 
-    private File getFileForFindingsNum() throws IOException {
+    private File getFileForPublish() throws IOException {
+
+        if (useOneFindingForUpdateClose) {
+            return getFileFromResourcePath("cucumber/data/sample-sast-results/1-finding-for-update-close.xml");
+        }
+        if (updating) {
+            return getFileFromResourcePath("cucumber/data/sample-sast-results/1-finding-updated.xml");
+        }
         if (useSanityFindingsFile) {
             return getFileFromResourcePath("cucumber/data/sample-sast-results/findings-sanity.xml");
         }
@@ -303,7 +384,7 @@ public class RunPublishProcessSteps {
     }
 
     private BugTracker createJiraBugTracker() {
-        BugTracker bt = BugTracker.builder()
+        return BugTracker.builder()
                 .issueType(jiraProperties.getIssueType())
                 .projectKey(jiraProperties.getProject())
                 .type(BugTracker.Type.JIRA)
@@ -313,7 +394,6 @@ public class RunPublishProcessSteps {
                 .openStatus(jiraProperties.getOpenStatus())
                 .closeTransition(jiraProperties.getCloseTransition())
                 .build();
-        return bt;
     }
 
 

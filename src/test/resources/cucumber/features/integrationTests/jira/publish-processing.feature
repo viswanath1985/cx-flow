@@ -2,7 +2,7 @@
 Feature: parse, and then publish processing
   given SAST XML results, calling flowService, to parse and publish results. findings should open an issue in Jira.
 
-  #@Cucu
+  @Cucu
   Scenario Outline: publish new issues to JIRA, one new issue is getting created per scan vulnerability type
     Given target is JIRA
     And   results contain <Number_Of> findings each having a different vulnerability type in one source file
@@ -15,7 +15,7 @@ Feature: parse, and then publish processing
       | 1         |
       | 3         |
 
-  #@Cucu
+  @Cucu
   @Create_issue
   Scenario Outline: publish new issue to JIRA which contains only one vulnerability type
     Given target is JIRA
@@ -30,7 +30,7 @@ Feature: parse, and then publish processing
       | 1         | 1        |
       | 2         | 1        |
 
-  #@Cucu
+  @Cucu
   @Create_issue
   Scenario Outline: publish new issues to JIRA and filtered by a single severity
     Given target is JIRA
@@ -46,7 +46,7 @@ Feature: parse, and then publish processing
       | 10              | 5         |
       | 10              | 10        |
 
-  #@Cucu
+  @Cucu
   @Create_issue
   Scenario Outline: sanity of publishing new issues to JIRA
     Given target is JIRA
@@ -60,23 +60,21 @@ Feature: parse, and then publish processing
       | High,Medium    | 2                             | 10                                | 0                           | 0                              |
       | High,Low       | 2                             | 0                                 | 19                          | 0                              |
 
-  @Skip
-    @Update_issue
-  Scenario Outline: updating an existing JIRA issue during publish
+  @Cucu
+  @Update_issue
+  Scenario: updating an existing JIRA issue during publish
     Given target is JIRA
-    And JIRA contains 1 issue with vulnerability type: "<vuln type>" and filename: "<filename>"
-    And SAST results contain 1 finding with vulnerability type: "<vuln type>" and filename: "<filename>"
+    And there is an existing issue
+    And SAST results contain 1 finding
     When publishing results to JIRA
     Then JIRA still contains 1 issue
     And issue ID hasn't changed
-    And issue's "updated" field is set to a more recent timestamp
-    And issue has vulnerability type: "<vuln type>" and filename: "<filename>"
-    Examples:
-      | vuln type                 | filename       |
-      | Reflected_XSS_All_Clients | DOS_Login.java |
+    And issue's updated field is set to a more recent timestamp
+    And issue has the same vulnerability type and filename
 
-  #@Cucu
+  @Cucu
   @Update_issue @Negative_test
+    # Change scenario name
   Scenario: publish updated issue to JIRA with missing parameters
     # Note - to update an issue, the vulnerability & filename fields must match
     Given target is JIRA
@@ -84,10 +82,22 @@ Feature: parse, and then publish processing
     When  publishing same issue with missing parameters
     Then  original issues is updated both with 'last updated' value and with new body content
 
-    #@Cucu
+    @Cucu
     @Close_issue
     Scenario: publish closed issue to JIRA
       Given target is JIRA
       And   there is an existing issue
       When  all issue's findings are false-positive
       Then  the issue should be closed
+
+
+  @Cucu
+  @Close_issue
+  Scenario: two issues exists in jira. SAST findings contains only one of them, and after publish one should be closed.
+    Given target is JIRA
+    And there are two existing issues
+    And SAST result contains only one of the findings
+    When publishing results to JIRA
+    Then there should be one closed and one open issue
+
+

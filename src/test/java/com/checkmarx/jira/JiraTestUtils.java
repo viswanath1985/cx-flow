@@ -11,6 +11,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.apache.tools.ant.taskdefs.condition.IsSet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -100,18 +101,39 @@ public class JiraTestUtils implements IJiraTestUtils {
     }
 
     private String getIssueSeverity(String issueDescription) {
+        return getIssueBodyPart(issueDescription,"Severity:");
+    }
+
+    private String getIssueBodyPart(String issueDescription, String field) {
         String[] lines = issueDescription.split(System.lineSeparator());
         for (String line: lines) {
-            if (line.contains("Severity:")) {
+            if (line.contains(field)) {
                 return line.split(" ")[1];
             }
         }
         return null;
     }
 
+    @Override
+    public String getIssueFilename(String projectKey) {
+        Issue issue = getFirstIssue(projectKey);
+        String firstLine = issue.getDescription().split(System.lineSeparator())[0];
+        String[] firstLineParts= firstLine.split(" ");
+        return firstLineParts[4];
+    }
+
+    // TODO UDI: check if this is realy the vulnerability field !
+    @Override
+    public String getIssueVulnerability(String projectKey) {
+        Issue issue = getFirstIssue(projectKey);
+        String firstLine = issue.getDescription().split(System.lineSeparator())[0];
+        String[] firstLineParts= firstLine.split(" ");
+        return firstLineParts[0];
+    }
+
 
     @Override
-    public int getFirstIssueNוumOfFindings(String projectKey) {
+    public int getFirstIssueNumOfFindings(String projectKey) {
         SearchResult result = search(String.format("project = \"%s\"", projectKey));
         if (result.getTotal() ==0) {
             return 0;
@@ -158,6 +180,26 @@ public class JiraTestUtils implements IJiraTestUtils {
     public String getIssueStatus(String projectKey) {
         Issue issue = getFirstIssue(projectKey);
         return issue.getStatus().getName();
+    }
+
+    @Override
+    public Long getFirstIssueId(String projectKey) {
+        Issue issue = getFirstIssue(projectKey);
+        return issue.getId();
+    }
+
+    @Override
+    public Map<String, Integer> getIssuesByStatus(String projectKey) {
+        Map<String, Integer> result = new HashMap<>();
+        SearchResult searchResults = search(String.format("project = \"%s\"", projectKey));
+        for (Issue issue: searchResults.getIssues()) {
+            if (result.containsKey(issue.getStatus().getName())) {
+                result.put(issue.getStatus().getName(), result.get(issue.getStatus().getName()) + 1);
+            } else {
+                result.put(issue.getStatus().getName(), 1);
+            }
+        }
+        return result;
     }
 
     private ResourceCreationConfig getIssueCreationConfig(String issueType) {

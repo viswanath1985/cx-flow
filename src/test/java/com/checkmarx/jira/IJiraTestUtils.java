@@ -15,7 +15,11 @@ public interface IJiraTestUtils {
 
     Map<Filter.Severity, Integer> getIssuesPerSeverity(String projectKey);
 
-    int getFirstIssueNוumOfFindings(String projectKey);
+    String getIssueFilename(String projectKey);
+
+    String getIssueVulnerability(String projectKey);
+
+    int getFirstIssueNumOfFindings(String projectKey);
 
     void ensureProjectExists(String project) throws IOException;
 
@@ -26,4 +30,8 @@ public interface IJiraTestUtils {
     Long getIssueUpdatedTime(String projectKey);
 
     String getIssueStatus(String projectKey);
+
+    Long getFirstIssueId(String projectKey);
+
+    Map<String, Integer> getIssuesByStatus(String projectKey);
 }
